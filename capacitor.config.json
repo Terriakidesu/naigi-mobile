@@ -1,0 +1,11 @@
+{
+  "appId": "chat.naigi.app",
+  "appName": "Naigi",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

@@ -1,0 +1,19 @@
+# Naigi mobile agent notes
+
+- This repository is only the native shell. User-facing UI, end-to-end encryption, and
+  voice/video belong in `../naigi-frontend`; change them there and re-run
+  `npm run sync`. Never edit `www/`, it is generated.
+- Use Node.js 22+ and npm, not Bun. Run `npm test`, `npm run check`, and
+  `npm run cap:sync` after changes; `npm run android:apk` when touching Android code.
+- Request permissions in context, never at launch. Sign-in and reading conversations
+  must work with no permissions granted. Add new permissions only with a feature that
+  needs them, and document them in the README table.
+- Do not add broad storage permissions. Use the system pickers and app-scoped
+  storage, and keep `usesCleartextTraffic` disabled so servers must use HTTPS.
+- Keep the native bridge small and dependency-free: `native/` is plain ES modules
+  loaded by the bundled pages, with no bundler and no framework.
+- Keep secrets out of the repository: no `google-services.json`, signing keys, or
+  keystores. Do not commit `node_modules/`, `www/`, `.gradle/`, or build output.
+- Never log message content, keys, or passphrases. The end-to-end encryption
+  implementation is the shared frontend's WebAssembly module; do not reimplement,
+  wrap, or weaken it here.
