@@ -30,3 +30,8 @@
 .naigi-picker-remove { display: grid; place-items: center; width: 50px; height: 50px; margin-right: 0.35rem; border-radius: 10px; color: var(--text-muted, #b1bec0); background: none; }
 .naigi-picker-remove .naigi-picker-icon { color: currentcolor; }
 .naigi-picker-clear { width: 100%; min-height: 48px; margin-top: 0.6rem; border-radius: 12px; color: var(--text-muted, #b1bec0); background: var(--bg-active, #2c3b42); font-size: 0.8rem; }
+
+/* Way back from sign-in to the picker, injected on the entry pages. */
+.naigi-picker-change { display: flex; align-items: baseline; gap: 0.4rem; width: 100%; min-height: 50px; margin-top: 0.75rem; padding: 0.6rem 0.85rem; border: 1px solid var(--line-soft, #37464d); border-radius: 12px; color: var(--text-muted, #b1bec0); background: none; font-size: 0.82rem; text-align: left; }
+.naigi-picker-change strong { overflow: hidden; flex: 1 1 auto; color: var(--text, #e7eceb); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.naigi-picker-fallback { padding: 0.75rem; text-align: center; color: var(--text-muted, #b1bec0); }

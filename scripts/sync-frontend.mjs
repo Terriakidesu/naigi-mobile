@@ -32,6 +32,16 @@ await cp(nativeDir, path.join(target, "native"), { recursive: true });
 // ships with the shell.
 await cp(path.join(nativeDir, "picker.html"), path.join(target, "picker.html"));
 
+// A phone user who picked the wrong server must be able to leave sign-in and
+// choose again. The shared pages cannot link there, so add the way back.
+for (const page of ["index.html", "register.html"]) {
+  const file = path.join(target, page);
+  const html = await readFile(file, "utf8");
+  if (!html.includes("native/picker-link.js")) {
+    await writeFile(file, html.replace('  <script type="module" src="/native/boot.js"></script>\n  </body>', '  <script type="module" src="/native/boot.js"></script>\n  <script type="module" src="/native/picker-link.js"></script>\n  </body>'));
+  }
+}
+
 let injected = 0;
 for (const page of await readdir(target)) {
   if (!page.endsWith(".html")) continue;
@@ -39,7 +49,12 @@ for (const page of await readdir(target)) {
   const html = await readFile(file, "utf8");
   if (html.includes("/native/mobile.js")) continue;
   const buildInfo = { app: appVersion, frontend: frontendVersion, target: buildTarget };
-  const bootstrap = `<script>window.__NAIGI_MOBILE_BUILD__=${JSON.stringify(buildInfo)};</script>\n  <script type="module" src="/native/mobile.js"></script>\n  <script type="module" src="/native/boot.js"></script>\n  </body>`;
+  const mobile = '  <script type="module" src="/native/mobile.js"></script>';
+  // Entry pages get a way back to the picker alongside the bridge.
+  const extra = ["index.html", "register.html"].includes(page)
+    ? '\n  <script type="module" src="/native/picker-link.js"></script>'
+    : "";
+  const bootstrap = `<script>window.__NAIGI_MOBILE_BUILD__=${JSON.stringify(buildInfo)};</script>\n${mobile}\n  <script type="module" src="/native/boot.js"></script>${extra}\n  </body>`;
   await writeFile(file, html.replace("</body>", bootstrap));
   injected += 1;
 }
