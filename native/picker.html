@@ -11,6 +11,7 @@
   </head>
   <body class="naigi-picker-page">
     <main class="naigi-picker">
+      <p class="naigi-picker-beta" role="note"><strong>Beta.</strong> This app is unfinished: expect bugs, and please report them.</p>
       <header class="naigi-picker-header">
         <span class="naigi-picker-mark" aria-hidden="true">N</span>
         <h1>Connect to Naigi</h1>
@@ -36,7 +37,7 @@
     </main>
 
     <script>window.__NAIGI_MOBILE_BUILD__=null;</script>
-    <script type="module" src="/native/mobile.js"></script>
-    <script type="module" src="/native/picker.js"></script>
+    <script type="module" src="/native/mobile.js?v=__NAIGI_GLUE_VERSION__"></script>
+    <script type="module" src="/native/picker.js?v=__NAIGI_GLUE_VERSION__"></script>
   </body>
 </html>

@@ -155,3 +155,25 @@ test("verification refuses to follow a redirect off the server", async () => {
   );
   assert.equal(seen, "error");
 });
+
+test("in the app, verification runs natively and keeps its error code", async () => {
+  const { verifyServer } = await load();
+  const plugin = { verify: async ({ origin }) => ({ origin, version: "0.26.0" }) };
+  assert.deepEqual(
+    await verifyServer("https://chat.example.com", async () => { throw new Error("must not use fetch"); }, plugin),
+    { version: "0.26.0", origin: "https://chat.example.com" },
+  );
+  const failing = { verify: async () => { throw Object.assign(new Error("denied"), { code: "dns_failed" }); } };
+  const error = await verifyServer("https://chat.example.com", async () => { throw new Error("must not use fetch"); }, failing).catch((e) => e);
+  assert.equal(error.code, "dns_failed");
+  const malformed = { verify: async () => ({ version: 42 }) };
+  const bad = await verifyServer("https://chat.example.com", async () => { throw new Error("must not use fetch"); }, malformed).catch((e) => e);
+  assert.equal(bad.code, "not_a_naigi_server");
+});
+
+test("a native failure without a code stays generic", async () => {
+  const { verifyServer } = await load();
+  const plugin = { verify: async () => { throw new Error("weird"); } };
+  const error = await verifyServer("https://chat.example.com", async () => { throw new Error("must not use fetch"); }, plugin).catch((e) => e);
+  assert.equal(error.code, "naigi_request_failed");
+});

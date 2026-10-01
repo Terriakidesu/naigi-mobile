@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Trust the system CAs plus any CA the user installed (for example a Caddy
+     CA for a self-hosted server). Without the user anchor, Android refuses
+     private-CA certificates even when they are installed in Settings. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -80,6 +80,27 @@ export function toResponse(result) {
   return new Response(empty ? null : bytes, { status: result?.status ?? 502, statusText: "", headers });
 }
 
+// Only controlled plugin codes may travel back to the page. Anything else is
+// a bug or tampering, so it becomes the generic failure.
+const KNOWN_ERRORS = new Set([
+  "dns_failed",
+  "tls_failed",
+  "connect_failed",
+  "not_a_naigi_server",
+  "invalid_naigi_origin",
+  "invalid_naigi_url",
+  "invalid_naigi_request",
+  "invalid_request_body",
+  "request_too_large",
+  "no_naigi_server",
+  "naigi_request_failed",
+]);
+
+export function pluginErrorCode(error) {
+  const code = typeof error?.code === "string" ? error.code : null;
+  return code && KNOWN_ERRORS.has(code) ? code : "naigi_request_failed";
+}
+
 /**
  * Installs the bridge. Returns a function that restores the original fetch.
  * Requests that are not /v1 calls, and any failure to reach the platform, fall
@@ -104,7 +125,7 @@ export function installApiBridge({ fetch: originalFetch, plugin, getOrigin, appO
       const result = await plugin.request(request);
       return toResponse(result);
     } catch (error) {
-      return new Response(JSON.stringify({ error: "naigi_request_failed" }), {
+      return new Response(JSON.stringify({ error: pluginErrorCode(error) }), {
         status: 502,
         headers: { "content-type": "application/json" },
       });
@@ -113,4 +134,30 @@ export function installApiBridge({ fetch: originalFetch, plugin, getOrigin, appO
 
   globalThis.fetch = bridge;
   return () => { globalThis.fetch = originalFetch; };
+}
+
+/**
+ * Installs the bridge as soon as the native plugin shows up. The page's modules
+ * can run before Capacitor finishes exposing its plugins, and a bridge that
+ * never installs fails in the worst way: /v1 calls fall through to the app's
+ * own origin, whose local server answers them with index.html and a 200 status.
+ */
+export function ensureApiBridge({ fetch: originalFetch, getPlugin, getOrigin, appOrigin = "", retries = 50, interval = 100 }) {
+  return new Promise((resolve) => {
+    const attempt = (left) => {
+      const plugin = getPlugin();
+      if (plugin?.request) {
+        installApiBridge({ fetch: originalFetch, plugin, getOrigin, appOrigin });
+        resolve(true);
+        return;
+      }
+      if (left <= 0) {
+        console.error("[Naigi] native API bridge unavailable; server requests cannot leave the app.");
+        resolve(false);
+        return;
+      }
+      setTimeout(() => attempt(left - 1), interval);
+    };
+    attempt(retries);
+  });
 }

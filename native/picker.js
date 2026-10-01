@@ -14,6 +14,24 @@ function setStatus(message, error = false) {
   status.classList.toggle("is-error", error);
 }
 
+/** Turns a verification failure into guidance instead of a dead end. */
+function verificationMessage(error) {
+  switch (error?.code) {
+    case "dns_failed":
+      return "Could not find that server. If it is a local name, make this phone use your local DNS server (for example your Pi-hole) in the Wi-Fi settings.";
+    case "tls_failed":
+      return "The server's certificate is not trusted. Install its CA certificate in Android Settings, under Security and privacy.";
+    case "connect_failed":
+      return "Could not reach that server. Check that it is online and reachable from this network.";
+    case "not_a_naigi_server":
+      return "That address did not answer like a Naigi server.";
+    case "invalid_naigi_origin":
+      return "Enter only the server origin, without a path.";
+    default:
+      return error instanceof Error ? error.message : "Could not connect.";
+  }
+}
+
 function icon(name) {
   const path = {
     server: "M4 4h16v6H4zM4 14h16v6H4zM7 7h.01M7 17h.01",
@@ -85,7 +103,7 @@ async function connect(value, options = {}) {
     if (options.reverify) await naigiMobile.servers.verify(origin);
     naigiMobile.servers.add(origin);
   } catch (error) {
-    setStatus(error instanceof Error ? error.message : "Could not connect.", true);
+    setStatus(verificationMessage(error), true);
     return false;
   }
   setStatus("Connected. Opening Naigi…");

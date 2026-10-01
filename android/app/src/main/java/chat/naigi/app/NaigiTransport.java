@@ -52,8 +52,7 @@ public final class NaigiTransport {
 
     private NaigiTransport() {}
 
-    /**
-     * Only the selected server may be contacted, and only over https, except for
+    /** Only the selected server may be contacted, and only over https, except for
      * a server on the device itself.
      */
     public static boolean isAllowedUrl(String rawUrl, String activeOrigin) {
@@ -74,6 +73,44 @@ public final class NaigiTransport {
     static boolean isLoopback(String host) {
         if (host == null) return false;
         return host.equals("127.0.0.1") || host.equals("localhost") || host.equals("[::1]") || host.equals("::1");
+    }
+
+    /**
+     * Whether an origin string may be probed as a Naigi server candidate. Unlike
+     * {@link #isAllowedUrl}, this does not require the origin to be the selected
+     * one, so the picker can check an address before saving it. The rules are the
+     * same otherwise: https, or http for loopback only, no credentials, no path.
+     */
+    public static boolean isVerifiableOrigin(String origin) {
+        if (origin == null) return false;
+        try {
+            URL parsed = new URL(origin);
+            if (parsed.getUserInfo() != null) return false;
+            String path = parsed.getPath();
+            if (path != null && !path.isEmpty() && !path.equals("/")) return false;
+            if (parsed.getQuery() != null || parsed.getRef() != null) return false;
+            String protocol = parsed.getProtocol().toLowerCase(Locale.ROOT);
+            if (protocol.equals("https")) return true;
+            return protocol.equals("http") && isLoopback(parsed.getHost());
+        } catch (Exception error) {
+            return false;
+        }
+    }
+
+    /**
+     * Maps a transport failure to a stable code the picker can explain. Only
+     * controlled codes leave this method, never exception text.
+     */
+    public static String errorCode(Exception error) {
+        if (error instanceof java.net.UnknownHostException) return "dns_failed";
+        if (error instanceof javax.net.ssl.SSLException) return "tls_failed";
+        if (error instanceof java.net.ConnectException
+            || error instanceof java.net.SocketTimeoutException) return "connect_failed";
+        if (error instanceof IllegalArgumentException) {
+            String message = error.getMessage();
+            if ("invalid_request_body".equals(message) || "request_too_large".equals(message)) return message;
+        }
+        return "naigi_request_failed";
     }
 
     /** Headers the platform manages itself must not be forwarded. */

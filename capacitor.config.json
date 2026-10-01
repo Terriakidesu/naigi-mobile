@@ -1,6 +1,6 @@
 {
   "appId": "chat.naigi.app",
-  "appName": "Naigi",
+  "appName": "Naigi Beta",
   "webDir": "www",
   "android": {
     "allowMixedContent": false

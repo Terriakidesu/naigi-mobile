@@ -16,6 +16,8 @@ const store = createServerStore(window.localStorage, {
 export const naigiMobile = {
   platform: "capacitor",
   build,
+  /** True once the /v1 fetch bridge is installed; false in a browser preview. */
+  apiBridgeActive: false,
   permissions,
   PERMISSIONS,
   maxServers: MAX_SERVERS,

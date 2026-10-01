@@ -107,7 +107,22 @@ export function createServerStore(storage, hooks = {}) {
 }
 
 /** Confirms an address really is a Naigi server before saving it. */
-export async function verifyServer(origin, request = fetch) {
+export async function verifyServer(origin, request = fetch, serverPlugin) {
+  const native = serverPlugin ?? globalThis.Capacitor?.Plugins?.NaigiServer;
+  if (native?.verify) {
+    // In the app the check runs natively, which also reports why it failed
+    // (DNS, TLS, unreachable, or not a Naigi server) instead of one message.
+    let result;
+    try {
+      result = await native.verify({ origin });
+    } catch (error) {
+      throw codedError(error);
+    }
+    if (!result || typeof result.version !== "string" || !result.version) {
+      throw codedError({ code: "not_a_naigi_server" });
+    }
+    return { version: result.version, origin };
+  }
   let response;
   try {
     response = await request(new URL("/v1/version", origin), {
@@ -129,4 +144,10 @@ export async function verifyServer(origin, request = fetch) {
     throw new Error("That address did not answer like a Naigi server.");
   }
   return { version: data.version, origin };
+}
+
+/** Attaches a stable code to an error so the picker can explain it. */
+export function codedError(error) {
+  const code = typeof error?.code === "string" ? error.code : "naigi_request_failed";
+  return Object.assign(new Error(code), { code });
 }

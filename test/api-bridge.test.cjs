@@ -197,3 +197,72 @@ test("installing without a platform plugin changes nothing", async () => {
     restoreBrowserGlobals();
   }
 });
+
+test("a known plugin code reaches the page, anything else stays generic", async () => {
+  const { pluginErrorCode } = await load();
+  assert.equal(pluginErrorCode({ code: "dns_failed" }), "dns_failed");
+  assert.equal(pluginErrorCode({ code: "tls_failed" }), "tls_failed");
+  assert.equal(pluginErrorCode({ code: "connect_failed" }), "connect_failed");
+  assert.equal(pluginErrorCode({ code: "request_too_large" }), "request_too_large");
+  assert.equal(pluginErrorCode({ code: "eval(\"1\")" }), "naigi_request_failed");
+  assert.equal(pluginErrorCode({}), "naigi_request_failed");
+  assert.equal(pluginErrorCode(null), "naigi_request_failed");
+  assert.equal(pluginErrorCode("dns_failed"), "naigi_request_failed");
+});
+
+test("the bridge waits for a late plugin instead of silently staying off", async () => {
+  withBrowserGlobals();
+  try {
+    const { ensureApiBridge } = await load();
+    let plugin;
+    const seen = [];
+    const restore = () => { globalThis.fetch = original; };
+    const original = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      if (String(input).startsWith("/v1/")) {
+        return new Response(JSON.stringify({ error: "no_naigi_server" }), { status: 503 });
+      }
+      return new Response("browser");
+    };
+    setTimeout(() => {
+      plugin = { request: async ({ url }) => { seen.push(url); return { status: 200, headers: {}, body: "" }; } };
+    }, 150);
+    const active = await ensureApiBridge({
+      fetch: globalThis.fetch,
+      getPlugin: () => plugin,
+      getOrigin: () => "https://chat.example.com",
+      appOrigin: "https://localhost",
+      retries: 30,
+      interval: 20,
+    });
+    assert.equal(active, true);
+    await fetch("/v1/me");
+    assert.deepEqual(seen, ["https://chat.example.com/v1/me"]);
+    restore();
+  } finally {
+    restoreBrowserGlobals();
+  }
+});
+
+test("a plugin that never arrives is reported instead of failing silently", async () => {
+  withBrowserGlobals();
+  try {
+    const { ensureApiBridge } = await load();
+    const errors = [];
+    const originalError = console.error;
+    console.error = (...args) => errors.push(args.join(" "));
+    const active = await ensureApiBridge({
+      fetch: globalThis.fetch,
+      getPlugin: () => undefined,
+      getOrigin: () => "https://chat.example.com",
+      appOrigin: "https://localhost",
+      retries: 2,
+      interval: 5,
+    });
+    console.error = originalError;
+    assert.equal(active, false);
+    assert.equal(errors.some((message) => message.includes("native API bridge unavailable")), true);
+  } finally {
+    restoreBrowserGlobals();
+  }
+});

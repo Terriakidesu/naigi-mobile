@@ -60,9 +60,9 @@ public class NaigiApiPlugin extends Plugin {
             response.put("body", NaigiTransport.encodeBody(result.body));
             call.resolve(response);
         } catch (IllegalArgumentException error) {
-            call.reject(error.getMessage() == null ? "invalid_naigi_request" : error.getMessage());
+            call.reject(NaigiTransport.errorCode(error));
         } catch (Exception error) {
-            call.reject("naigi_request_failed", error);
+            call.reject(NaigiTransport.errorCode(error), error);
         }
     }
 }

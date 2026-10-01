@@ -66,6 +66,40 @@ public class NaigiServerPlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Checks a candidate server before it is saved. Reads only /v1/version and
+     * rejects with a code the picker can explain: dns_failed, tls_failed,
+     * connect_failed, not_a_naigi_server, or naigi_request_failed.
+     */
+    @PluginMethod
+    public void verify(PluginCall call) {
+        String origin = call.getString("origin");
+        if (!NaigiTransport.isVerifiableOrigin(origin)) {
+            call.reject("invalid_naigi_origin");
+            return;
+        }
+        try {
+            java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
+            headers.put("accept", "application/json");
+            NaigiTransport.Result result = NaigiTransport.request(origin + "/v1/version", "GET", headers, null, null);
+            if (result.status != 200) {
+                call.reject("not_a_naigi_server");
+                return;
+            }
+            org.json.JSONObject body = new org.json.JSONObject(new String(result.body, java.nio.charset.StandardCharsets.UTF_8));
+            if (!"Naigi".equals(body.optString("name", null)) || body.optString("version", "").isEmpty()) {
+                call.reject("not_a_naigi_server");
+                return;
+            }
+            JSObject response = new JSObject();
+            response.put("origin", origin);
+            response.put("version", body.optString("version"));
+            call.resolve(response);
+        } catch (Exception error) {
+            call.reject(NaigiTransport.errorCode(error));
+        }
+    }
+
     private static String statusMessage(int status) {
         if (status == 401) return "Unauthorized";
         if (status == 403) return "Forbidden";

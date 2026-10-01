@@ -127,14 +127,20 @@ public class NaigiTransportTest {
 
     @Test
     public void keepsUserHeadersAndDropsTheOnesThePlatformOwns() throws Exception {
+        byte[] payload = utf8("{\"a\":1}");
         NaigiTransport.request(
             origin + "/v1/crypto/keys/upload", "PUT",
             Map.of("content-type", "application/json", "host", "localhost", "content-length", "999", "accept-encoding", "gzip"),
-            NaigiTransport.encodeBody(utf8("{\"a\":1}")), null);
-        String headers = server.requests().get(0).header.toLowerCase(java.util.Locale.ROOT);
+            NaigiTransport.encodeBody(payload), null);
+        StubServer.Recorded seen = server.requests().get(0);
+        String headers = seen.header.toLowerCase(java.util.Locale.ROOT);
         assertTrue(headers.contains("content-type: application/json"));
-        assertFalse(headers.contains("\nhost:"));
-        assertFalse(headers.contains("\naccept-encoding:"));
+        // Our forged values must not survive; the Host line below can only be
+        // the platform's own, which always carries the real authority.
+        assertFalse(headers.contains("content-length: 999"));
+        assertFalse(seen.header.contains("localhost"));
+        assertFalse(headers.contains("accept-encoding: gzip"));
+        assertEquals(payload.length, seen.body.length);
     }
 
     @Test
@@ -226,5 +232,38 @@ public class NaigiTransportTest {
         assertTrue(NaigiTransport.isForwardableHeader("content-type"));
         assertTrue(NaigiTransport.isForwardableHeader("Authorization"));
         assertTrue(NaigiTransport.isForwardableHeader("X-Custom"));
+    }
+
+    @Test
+    public void verificationAcceptsOnlyCleanOrigins() {
+        assertTrue(NaigiTransport.isVerifiableOrigin("https://chat.example.com"));
+        assertTrue(NaigiTransport.isVerifiableOrigin("https://chat.example.com/"));
+        assertTrue(NaigiTransport.isVerifiableOrigin("https://naigi.home.arpa"));
+        assertTrue(NaigiTransport.isVerifiableOrigin("http://127.0.0.1:3000"));
+        assertTrue(NaigiTransport.isVerifiableOrigin("http://localhost/"));
+
+        assertFalse(NaigiTransport.isVerifiableOrigin("http://chat.example.com"));
+        assertFalse(NaigiTransport.isVerifiableOrigin("http://192.168.1.10:3000"));
+        assertFalse(NaigiTransport.isVerifiableOrigin("https://user:pass@chat.example.com"));
+        assertFalse(NaigiTransport.isVerifiableOrigin("https://chat.example.com/v1"));
+        assertFalse(NaigiTransport.isVerifiableOrigin("https://chat.example.com?x=1"));
+        assertFalse(NaigiTransport.isVerifiableOrigin("https://chat.example.com#frag"));
+        assertFalse(NaigiTransport.isVerifiableOrigin("ftp://chat.example.com"));
+        assertFalse(NaigiTransport.isVerifiableOrigin(null));
+        assertFalse(NaigiTransport.isVerifiableOrigin("not a url"));
+        assertFalse(NaigiTransport.isVerifiableOrigin(""));
+    }
+
+    @Test
+    public void failuresAreClassifiedForThePicker() {
+        assertEquals("dns_failed", NaigiTransport.errorCode(new java.net.UnknownHostException("x")));
+        assertEquals("tls_failed", NaigiTransport.errorCode(new javax.net.ssl.SSLHandshakeException("x")));
+        assertEquals("tls_failed", NaigiTransport.errorCode(new javax.net.ssl.SSLException("x")));
+        assertEquals("connect_failed", NaigiTransport.errorCode(new java.net.ConnectException("x")));
+        assertEquals("connect_failed", NaigiTransport.errorCode(new java.net.SocketTimeoutException("x")));
+        assertEquals("request_too_large", NaigiTransport.errorCode(new IllegalArgumentException("request_too_large")));
+        assertEquals("invalid_request_body", NaigiTransport.errorCode(new IllegalArgumentException("invalid_request_body")));
+        assertEquals("naigi_request_failed", NaigiTransport.errorCode(new IllegalArgumentException("something else")));
+        assertEquals("naigi_request_failed", NaigiTransport.errorCode(new java.io.IOException("x")));
     }
 }

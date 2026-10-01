@@ -1,4 +1,7 @@
-# Naigi mobile
+# Naigi mobile (Beta)
+
+> This app is in **beta**: it is unfinished, things will break, and updates may
+> require re-installing. Do not rely on it yet.
 
 Native Android and iOS app for Naigi, built as a [Capacitor](https://capacitorjs.com/)
 shell around the shared frontend. All user-facing UI, end-to-end encryption, and

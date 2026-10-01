@@ -23,3 +23,7 @@
 - Never log message content, keys, or passphrases. The end-to-end encryption
   implementation is the shared frontend's WebAssembly module; do not reimplement,
   wrap, or weaken it here.
+- The app is in beta and says so: the launcher label is "Naigi Beta"
+  (`android/app/src/main/res/values/strings.xml`, kept in sync with
+  `capacitor.config.json`), the picker shows a beta notice, and the README and
+  changelog carry one. Drop all of these together when it leaves beta.

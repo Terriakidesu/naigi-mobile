@@ -101,28 +101,42 @@ final class StubServer implements AutoCloseable {
 
     private void serve(Socket client) throws IOException {
         client.setSoTimeout(10_000);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.ISO_8859_1));
+        InputStream raw = client.getInputStream();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(raw, StandardCharsets.ISO_8859_1));
         String requestLine = reader.readLine();
         if (requestLine == null) return;
         String[] parts = requestLine.split(" ");
         String method = parts.length > 0 ? parts[0] : "GET";
         String target = parts.length > 1 ? parts[1] : "/";
 
-        String contentLength = "0";
+        int length = 0;
         String cookie = null;
         StringBuilder headerLines = new StringBuilder();
         String line;
         while ((line = reader.readLine()) != null && !line.isEmpty()) {
             headerLines.append(line).append('\n');
             String lower = line.toLowerCase(Locale.ROOT);
-            if (lower.startsWith("content-length:")) contentLength = line.substring(line.indexOf(':') + 1).trim();
+            if (lower.startsWith("content-length:")) {
+                try { length = Integer.parseInt(line.substring(line.indexOf(':') + 1).trim()); }
+                catch (NumberFormatException invalid) { length = 0; }
+            }
             if (lower.startsWith("cookie:")) cookie = line.substring(line.indexOf(':') + 1).trim();
         }
 
+        // Read raw bytes: the BufferedReader may already hold buffered payload,
+        // so drain it first and only then touch the socket.
+        java.io.ByteArrayOutputStream buffered = new java.io.ByteArrayOutputStream();
+        while (reader.ready()) {
+            int next = reader.read();
+            if (next < 0) break;
+            buffered.write(next);
+        }
         byte[] body = new byte[length];
-        int read = 0;
+        byte[] already = buffered.toByteArray();
+        int have = Math.min(already.length, length);
+        System.arraycopy(already, 0, body, 0, have);
+        int read = have;
         while (read < length) {
-            // Read raw bytes: the BufferedReader would consume and buffer payload.
             int count = raw.read(body, read, length - read);
             if (count < 0) break;
             read += count;
