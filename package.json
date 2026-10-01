@@ -15,7 +15,7 @@
     "cap:sync": "npm run sync && cap sync",
     "cap:android": "npm run cap:sync && cap open android",
     "android:apk": "npm run cap:sync && cd android && gradlew assembleDebug",
-    "check": "node --check scripts/sync-frontend.mjs && node --check scripts/frontend-source.mjs && node --check scripts/preview.mjs && node --check native/mobile.js && node --check native/permissions.js",
+    "check": "node --check scripts/sync-frontend.mjs && node --check scripts/frontend-source.mjs && node --check scripts/preview.mjs && node --check native/mobile.js && node --check native/permissions.js && node --check native/servers.js && node --check native/picker.js && node --check native/boot.js && node --check native/api-bridge.js",
     "test": "node --test test/*.test.cjs"
   },
   "devDependencies": {

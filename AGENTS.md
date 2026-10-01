@@ -12,6 +12,12 @@
   storage, and keep `usesCleartextTraffic` disabled so servers must use HTTPS.
 - Keep the native bridge small and dependency-free: `native/` is plain ES modules
   loaded by the bundled pages, with no bundler and no framework.
+- The selected server is the only destination for API traffic. `native/api-bridge.js`
+  rewrites same-origin `/v1` calls and `NaigiApiPlugin` refuses any request that does
+  not match the saved origin, so never relax that check or add a second origin.
+- Servers are `https` origins only, except loopback over `http`. Do not accept
+  credentials, paths, or other schemes, and do not raise the saved-server limit
+  without a reason.
 - Keep secrets out of the repository: no `google-services.json`, signing keys, or
   keystores. Do not commit `node_modules/`, `www/`, `.gradle/`, or build output.
 - Never log message content, keys, or passphrases. The end-to-end encryption

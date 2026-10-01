@@ -8,6 +8,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(NaigiPermissionsPlugin.class);
+        registerPlugin(NaigiServerPlugin.class);
+        registerPlugin(NaigiApiPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

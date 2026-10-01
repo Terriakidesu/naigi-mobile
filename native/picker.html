@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <title>Choose a server · Naigi</title>
+    <link rel="stylesheet" href="/app.css">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/native/picker.css">
+  </head>
+  <body class="naigi-picker-page">
+    <main class="naigi-picker">
+      <header class="naigi-picker-header">
+        <span class="naigi-picker-mark" aria-hidden="true">N</span>
+        <h1>Connect to Naigi</h1>
+        <p>Your messages stay end-to-end encrypted. Choose the server you self-host or were invited to.</p>
+      </header>
+
+      <form id="picker-form" class="naigi-picker-form" novalidate>
+        <label for="picker-address">Server address</label>
+        <div class="naigi-picker-row">
+          <input id="picker-address" type="url" inputmode="url" autocomplete="url" spellcheck="false"
+                 placeholder="https://chat.example.com" aria-describedby="picker-hint" required>
+          <button id="picker-connect" type="submit">Connect</button>
+        </div>
+        <p id="picker-hint" class="naigi-picker-hint">https is required, except for a server on this device.</p>
+        <p id="picker-status" class="naigi-picker-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <section id="picker-saved" class="naigi-picker-saved" aria-labelledby="picker-saved-title" hidden>
+        <h2 id="picker-saved-title">Saved servers</h2>
+        <ul id="picker-list" class="naigi-picker-list"></ul>
+        <button id="picker-clear" class="naigi-picker-clear" type="button">Remove all saved servers</button>
+      </section>
+    </main>
+
+    <script>window.__NAIGI_MOBILE_BUILD__=null;</script>
+    <script type="module" src="/native/mobile.js"></script>
+    <script type="module" src="/native/picker.js"></script>
+  </body>
+</html>

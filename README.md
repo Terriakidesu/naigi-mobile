@@ -36,6 +36,21 @@ build is already present, use `npm run sync -- --no-build`.
 can be reviewed in a desktop browser at a phone size. Do not open `www/*.html` from
 disk: the pages use absolute paths such as `/app.css`, which need an HTTP origin.
 
+## Choosing a server
+
+Naigi is self-hosted, so the app asks which server to use before anything else. The
+picker accepts `https` origins (plus `http` for a server on the device itself),
+rejects credentials, paths, and other schemes, and confirms an address really is a
+Naigi server by reading `/v1/version` before saving it. Up to ten servers are kept,
+most recent first, and forgetting one never removes stored keys or messages.
+
+The bundled pages address `/v1` on their own origin, which is a local scheme inside
+the app. Those calls are rewritten to the selected server and sent through the
+platform, which keeps the session cookie in one place and does not require the
+server to allow cross-origin requests. Encrypted attachments cross that boundary as
+base64 in both directions, and the realtime socket is opened directly against the
+selected server.
+
 ## Interface
 
 The mobile build is a phone-native interface, not a scaled-down desktop layout:
