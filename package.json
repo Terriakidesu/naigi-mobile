@@ -1,6 +1,6 @@
 {
   "name": "naigi-mobile",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Naigi mobile app: Capacitor shell for iOS and Android",
   "homepage": "https://github.com/Terriakidesu/naigi-mobile",
