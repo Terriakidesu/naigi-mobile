@@ -10,4 +10,6 @@
 
 ## Releases
 
+- [0.4.x](docs/changelogs/0.4.md) — latest: 0.4.0 Beta (2026-10-09)
+
 - [0.1.x](docs/changelogs/0.1.md) — latest: 0.1.0 (2026-10-01)
