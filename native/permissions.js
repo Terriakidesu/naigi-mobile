@@ -35,18 +35,22 @@ const UNKNOWN = Object.freeze({ alias: "", supported: false, granted: false, blo
  * plugin; when it is missing (for example in a browser) every call resolves to an
  * explicit "unavailable" result instead of throwing.
  */
-export function createPermissionsApi(bridge) {
-  const unavailable = () => bridge ? undefined : UNKNOWN;
+export function createPermissionsApi(bridgeSource) {
+  // The plugin may register after this module is evaluated, so it is resolved on every use rather than
+  // captured once. Capturing it made every request a silent no-op on a slow-starting WebView.
+  const bridge = () => (typeof bridgeSource === "function" ? bridgeSource() : bridgeSource);
+  const unavailable = () => bridge() ? undefined : UNKNOWN;
 
   async function status() {
-    if (!bridge) return {};
-    const result = await bridge.status();
+    const plugin = bridge();
+    if (!plugin) return {};
+    const result = await plugin.status();
     return result?.permissions ?? {};
   }
 
   async function current(alias) {
     if (!PERMISSIONS[alias]) return { ...UNKNOWN, alias };
-    if (!bridge) return { ...UNKNOWN, alias, ...PERMISSIONS[alias] };
+    if (!bridge()) return { ...UNKNOWN, alias, ...PERMISSIONS[alias] };
     const permissions = await status();
     return normalize(alias, permissions[alias]);
   }
@@ -54,8 +58,8 @@ export function createPermissionsApi(bridge) {
   /** Requests one permission and returns the resulting state with its explanation. */
   async function request(alias) {
     if (!PERMISSIONS[alias]) return { ...UNKNOWN, alias };
-    if (!bridge) return { ...UNKNOWN, alias, ...PERMISSIONS[alias] };
-    const result = await bridge.request({ alias });
+    if (!bridge()) return { ...UNKNOWN, alias, ...PERMISSIONS[alias] };
+    const result = await bridge().request({ alias });
     return normalize(alias, result);
   }
 
@@ -66,7 +70,14 @@ export function createPermissionsApi(bridge) {
     return results;
   }
 
-  return { available: Boolean(bridge), status, current, request, requestAll, unavailable };
+  return {
+    get available() { return Boolean(bridge()); },
+    status,
+    current,
+    request,
+    requestAll,
+    unavailable,
+  };
 }
 
 function normalize(alias, value) {
@@ -83,4 +94,4 @@ function normalize(alias, value) {
   };
 }
 
-export const permissions = createPermissionsApi(globalThis.Capacitor?.Plugins?.NaigiPermissions);
+export const permissions = createPermissionsApi(() => globalThis.Capacitor?.Plugins?.NaigiPermissions);

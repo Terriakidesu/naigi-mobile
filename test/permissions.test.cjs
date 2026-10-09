@@ -32,6 +32,24 @@ test("every permission the app may ask for explains itself before prompting", as
   assert.equal(api.available, true);
 });
 
+test("a plugin that registers late is still found, rather than silently never asked", async () => {
+  const { createPermissionsApi } = await load();
+  // Capacitor registers plugins after the page's modules evaluate, so a bridge captured once at
+  // import time reports itself unavailable forever and every request becomes a no-op.
+  let plugin;
+  const api = createPermissionsApi(() => plugin);
+  assert.equal(api.available, false);
+  const early = await api.request("camera");
+  assert.equal(early.granted, false);
+  // Before the plugin exists the caller is told it is unavailable, so it can let the browser ask.
+  assert.equal(early.unavailable, true);
+
+  plugin = stubBridge({ camera: { granted: true, prompt: false, supported: true } });
+  assert.equal(api.available, true);
+  const granted = await api.request("camera");
+  assert.equal(granted.granted, true);
+});
+
 test("a request returns the granted state together with the reason", async () => {
   const { createPermissionsApi } = await load();
   const bridge = stubBridge({ microphone: { granted: true, prompt: false, supported: true } });
